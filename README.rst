@@ -49,3 +49,12 @@ Then use ninja to build and install:
 
 If you are installing into a system location you will need to run install
 separately, and as root.
+
+AMDGPU ASIC table file
+----------------------
+
+The AMDGPU driver requires the `amdgpu.ids` file. It is usually located at
+`$PREFIX/share/libdrm`, but it is possible to specify an alternative path
+during runtime by setting the `AMDGPU_ASIC_ID_TABLE_PATH` environment
+variable with the full path (including the file name) of the alternative
+file.
