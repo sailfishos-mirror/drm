@@ -33,6 +33,9 @@ enum util_fill_pattern {
 	UTIL_PATTERN_PLAIN,
 	UTIL_PATTERN_SMPTE,
 	UTIL_PATTERN_GRADIENT,
+	UTIL_PATTERN_NOISE,
+	UTIL_PATTERN_NOISE_COLOR,
+	UTIL_PATTERN_BLACK_WHITE,
 };
 
 void util_fill_pattern(uint32_t format, enum util_fill_pattern pattern,
