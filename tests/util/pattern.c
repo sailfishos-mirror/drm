@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <drm_fourcc.h>
 
@@ -2136,19 +2137,32 @@ static void fill_simple_patterns(const struct util_format_info *info,
  * @width: Width in pixels
  * @height: Height in pixels
  * @stride: Line stride (pitch) in bytes
+ * @seed: Seed for noise patterns if zero a default time based seed will be used
  *
  * Fill the buffers with the test pattern specified by the pattern parameter.
  * Supported formats vary depending on the selected pattern.
  */
 void util_fill_pattern(uint32_t format, enum util_fill_pattern pattern,
 		       void *planes[3], unsigned int width,
-		       unsigned int height, unsigned int stride)
+		       unsigned int height, unsigned int stride, unsigned long seed)
 {
 	const struct util_format_info *info;
 
 	info = util_format_info_find(format);
 	if (info == NULL)
 		return;
+
+	switch (pattern) {
+	case UTIL_PATTERN_NOISE:
+	case UTIL_PATTERN_NOISE_COLOR:
+		if (!seed)
+			seed = time(NULL);
+		srand(seed);
+		printf("Seed used for noise patterns %lu\n", seed);
+		break;
+	default:
+		break;
+	}
 
 	switch (pattern) {
 	case UTIL_PATTERN_TILES:
