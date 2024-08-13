@@ -789,3 +789,39 @@ drm_public int amdgpu_bo_va_op_raw(amdgpu_device_handle dev,
 
 	return r;
 }
+
+drm_public int amdgpu_bo_va_op_raw2(amdgpu_device_handle dev,
+				    amdgpu_bo_handle bo,
+				    uint64_t offset,
+				    uint64_t size,
+				    uint64_t addr,
+				    uint64_t flags,
+				    uint32_t ops,
+				    uint32_t vm_timeline_syncobj_out,
+				    uint64_t vm_timeline_point,
+				    uint64_t input_fence_syncobj_handles,
+				    uint32_t num_syncobj_handles)
+{
+	struct drm_amdgpu_gem_va va;
+	int r;
+
+	if (ops != AMDGPU_VA_OP_MAP && ops != AMDGPU_VA_OP_UNMAP &&
+	    ops != AMDGPU_VA_OP_REPLACE && ops != AMDGPU_VA_OP_CLEAR)
+		return -EINVAL;
+
+	memset(&va, 0, sizeof(va));
+	va.handle = bo ? bo->handle : 0;
+	va.operation = ops;
+	va.flags = flags;
+	va.va_address = addr;
+	va.offset_in_bo = offset;
+	va.map_size = size;
+	va.vm_timeline_syncobj_out = vm_timeline_syncobj_out;
+	va.vm_timeline_point = vm_timeline_point;
+	va.input_fence_syncobj_handles = input_fence_syncobj_handles;
+	va.num_syncobj_handles = num_syncobj_handles;
+
+	r = drmCommandWriteRead(dev->fd, DRM_AMDGPU_GEM_VA, &va, sizeof(va));
+
+	return r;
+}

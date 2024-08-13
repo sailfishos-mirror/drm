@@ -14,6 +14,7 @@ amdgpu_bo_query_info
 amdgpu_bo_set_metadata
 amdgpu_bo_va_op
 amdgpu_bo_va_op_raw
+amdgpu_bo_va_op_raw2
 amdgpu_bo_wait_for_idle
 amdgpu_create_bo_from_user_mem
 amdgpu_cs_chunk_fence_info_to_data
@@ -83,3 +84,7 @@ amdgpu_va_get_start_addr
 amdgpu_va_range_query
 amdgpu_vm_reserve_vmid
 amdgpu_vm_unreserve_vmid
+amdgpu_create_userqueue
+amdgpu_free_userqueue
+amdgpu_userq_signal
+amdgpu_userq_wait
