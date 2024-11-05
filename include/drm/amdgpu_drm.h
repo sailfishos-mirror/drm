@@ -931,6 +931,8 @@ struct drm_amdgpu_cs_chunk_cp_gfx_shadow {
 #define AMDGPU_INFO_MAX_IBS			0x22
 /* query last page fault info */
 #define AMDGPU_INFO_GPUVM_FAULT			0x23
+/* query FW object size and alignment */
+#define AMDGPU_INFO_UQ_FW_AREAS			0x24
 
 #define AMDGPU_INFO_MMR_SE_INDEX_SHIFT	0
 #define AMDGPU_INFO_MMR_SE_INDEX_MASK	0xff
@@ -1205,6 +1207,27 @@ struct drm_amdgpu_info_hw_ip {
 	__u32  available_rings;
 	/** version info: bits 23:16 major, 15:8 minor, 7:0 revision */
 	__u32  ip_discovery_version;
+};
+
+/* GFX metadata BO sizes and alignment info (in bytes) */
+struct drm_amdgpu_info_uq_fw_areas_gfx {
+	/* shadow area size */
+	__u32 shadow_size;
+	/* shadow area base virtual mem alignment */
+	__u32 shadow_alignment;
+	/* context save area size */
+	__u32 csa_size;
+	/* context save area base virtual mem alignment */
+	__u32 csa_alignment;
+};
+
+/* IP specific metadata related information used in the
+ * subquery AMDGPU_INFO_UQ_FW_AREAS
+ */
+struct drm_amdgpu_info_uq_fw_areas {
+	union {
+		struct drm_amdgpu_info_uq_fw_areas_gfx gfx;
+	};
 };
 
 struct drm_amdgpu_info_num_handles {

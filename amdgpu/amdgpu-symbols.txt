@@ -70,6 +70,7 @@ amdgpu_query_hw_ip_count
 amdgpu_query_hw_ip_info
 amdgpu_query_info
 amdgpu_query_sensor_info
+amdgpu_query_uq_fw_area_info
 amdgpu_query_video_caps_info
 amdgpu_read_mm_registers
 amdgpu_va_manager_alloc

@@ -42,6 +42,7 @@ extern "C" {
 #endif
 
 struct drm_amdgpu_info_hw_ip;
+struct drm_amdgpu_info_uq_fw_areas;
 struct drm_amdgpu_bo_list_entry;
 
 /*--------------------------------------------------------------------------*/
@@ -1171,6 +1172,26 @@ int amdgpu_query_hw_ip_count(amdgpu_device_handle dev, unsigned type,
 int amdgpu_query_hw_ip_info(amdgpu_device_handle dev, unsigned type,
 			    unsigned ip_instance,
 			    struct drm_amdgpu_info_hw_ip *info);
+
+/**
+ * Query FW area related information.
+ *
+ * The return size is query-specific and depends on the "type" parameter.
+ * No more than "size" bytes is returned.
+ *
+ * \param	dev		- \c [in] Device handle. See #amdgpu_device_initialize()
+ * \param	type		- \c [in] AMDGPU_HW_IP_*
+ * \param	ip_instance	- \c [in] HW IP index.
+ * \param	info		- \c [out] The pointer to return value
+ *
+ * \return   0 on success\n
+ *          <0 - Negative POSIX error code
+ *
+*/
+int amdgpu_query_uq_fw_area_info(amdgpu_device_handle dev,
+				  unsigned type,
+				  unsigned ip_instance,
+				  struct drm_amdgpu_info_uq_fw_areas *info);
 
 /**
  * Query heap information
