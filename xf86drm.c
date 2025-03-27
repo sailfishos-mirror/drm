@@ -1348,11 +1348,11 @@ static void drmCopyVersion(drmVersionPtr d, const drm_version_t *s)
     d->version_minor      = s->version_minor;
     d->version_patchlevel = s->version_patchlevel;
     d->name_len           = s->name_len;
-    d->name               = strdup(s->name);
+    d->name               = s->name ? strdup(s->name) : NULL;
     d->date_len           = s->date_len;
-    d->date               = strdup(s->date);
+    d->date               = s->date ? strdup(s->date) : NULL;
     d->desc_len           = s->desc_len;
-    d->desc               = strdup(s->desc);
+    d->desc               = s->desc ? strdup(s->desc) : NULL;
 }
 
 
