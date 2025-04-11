@@ -37,6 +37,7 @@ amdgpu_create_userqueue(amdgpu_device_handle dev,
 			uint64_t wptr_va,
 			uint64_t rptr_va,
 			void *mqd_in,
+			uint32_t flags,
 			uint32_t *queue_id)
 {
 	int ret;
@@ -75,6 +76,7 @@ amdgpu_create_userqueue(amdgpu_device_handle dev,
 
 	userq.in.mqd = (uint64_t)mqd_in;
 	userq.in.mqd_size = mqd_size;
+	userq.in.flags = flags;
 
 	ret = drmCommandWriteRead(dev->fd, DRM_AMDGPU_USERQ,
 				  &userq, sizeof(userq));

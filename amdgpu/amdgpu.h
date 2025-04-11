@@ -2026,6 +2026,7 @@ int amdgpu_create_userqueue(amdgpu_device_handle dev,
 			    uint64_t wptr_va,
 			    uint64_t rptr_va,
 			    void *mqd_in,
+			    uint32_t flags,
 			    uint32_t *queue_id);
 
 /**
