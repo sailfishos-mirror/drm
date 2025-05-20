@@ -23,7 +23,7 @@ include:
     - '/templates/ci-fairy.yml'
 
 variables:
-  FDO_UPSTREAM_REPO: mesa/drm
+  FDO_UPSTREAM_REPO: mesa/libdrm
   FDO_REPO_SUFFIX: "$BUILD_OS/$BUILD_ARCH"
 
 stages:
