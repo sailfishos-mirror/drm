@@ -26,7 +26,7 @@
 project(
   'libdrm',
   ['c'],
-  version : '2.4.124',
+  version : '2.4.125',
   license : 'MIT',
   meson_version : '>= 0.59',
   default_options : ['buildtype=debugoptimized', 'c_std=c11'],
