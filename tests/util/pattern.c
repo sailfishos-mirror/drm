@@ -1978,7 +1978,7 @@ static void insert_value_yuv_planar(const struct util_format_info *info,
 	v_mem[x/xsub*cs] = val.v;
 }
 
-inline bool is_power_of_two(unsigned long val)
+static inline bool is_power_of_two(unsigned long val)
 {
 	return (val != 0) && ((val & (val - 1)) == 0);
 }
