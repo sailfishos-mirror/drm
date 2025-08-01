@@ -42,6 +42,7 @@
 #include <stddef.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <libgen.h>
 #include <limits.h>
 #include <signal.h>
 #include <time.h>
@@ -3592,6 +3593,7 @@ static int get_subsystem_type(const char *device_path)
         { "/spi", DRM_BUS_PLATFORM },
         { "/host1x", DRM_BUS_HOST1X },
         { "/virtio", DRM_BUS_VIRTIO },
+        { "/faux", DRM_BUS_FAUX },
     };
 
     strncpy(path, device_path, PATH_MAX);
@@ -3794,6 +3796,9 @@ drm_public int drmDevicesEqual(drmDevicePtr a, drmDevicePtr b)
 
     case DRM_BUS_HOST1X:
         return memcmp(a->businfo.host1x, b->businfo.host1x, sizeof(drmHost1xBusInfo)) == 0;
+
+    case DRM_BUS_FAUX:
+        return memcmp(a->deviceinfo.faux, b->deviceinfo.faux, sizeof(drmFauxDeviceInfo)) == 0;
 
     default:
         break;
@@ -4015,6 +4020,12 @@ static void drmFreeHost1xDevice(drmDevicePtr device)
     }
 }
 
+static void drmFreeFauxDevice(drmDevicePtr device)
+{
+    if (device->deviceinfo.faux)
+        free(device->deviceinfo.faux->name);
+}
+
 drm_public void drmFreeDevice(drmDevicePtr *device)
 {
     if (device == NULL)
@@ -4028,6 +4039,10 @@ drm_public void drmFreeDevice(drmDevicePtr *device)
 
         case DRM_BUS_HOST1X:
             drmFreeHost1xDevice(*device);
+            break;
+
+        case DRM_BUS_FAUX:
+            drmFreeFauxDevice(*device);
             break;
         }
     }
@@ -4457,6 +4472,65 @@ free_device:
     return ret;
 }
 
+static int drmParseFauxDeviceInfo(int maj, int min, drmFauxDeviceInfoPtr info)
+{
+#ifdef __linux__
+    char path[PATH_MAX + 1] = "";
+    char real_path[PATH_MAX + 1] = "";
+    char *name;
+
+    snprintf(path, sizeof(path), "/sys/dev/char/%d:%d/device", maj, min);
+
+    if (!realpath(path, real_path))
+        return -errno;
+
+    name = basename(real_path);
+    if (!name)
+        return -ENOENT;
+
+    info->name = strdup(name);
+    if (!info->name)
+        return -errno;
+
+    return 0;
+#else
+#warning "Missing implementation of drmParseFauxDeviceInfo"
+    return -EINVAL;
+#endif
+}
+
+static int drmProcessFauxDevice(drmDevicePtr *device,
+                                const char *node, int node_type,
+                                int maj, int min, bool fetch_deviceinfo,
+                                uint32_t flags)
+{
+    drmDevicePtr dev;
+    char *ptr;
+    int ret;
+
+    dev = drmDeviceAlloc(node_type, node, 0, sizeof(drmFauxDeviceInfo), &ptr);
+    if (!dev)
+        return -ENOMEM;
+
+    dev->bustype = DRM_BUS_FAUX;
+
+    if (fetch_deviceinfo) {
+        dev->deviceinfo.faux = (drmFauxDeviceInfoPtr)ptr;
+
+        ret = drmParseFauxDeviceInfo(maj, min, dev->deviceinfo.faux);
+        if (ret < 0)
+            goto free_device;
+    }
+
+    *device = dev;
+
+    return 0;
+
+free_device:
+    free(dev);
+    return ret;
+}
+
 static int
 process_device(drmDevicePtr *device, const char *d_name,
                int req_subsystem_type,
@@ -4509,6 +4583,9 @@ process_device(drmDevicePtr *device, const char *d_name,
     case DRM_BUS_HOST1X:
         return drmProcessHost1xDevice(device, node, node_type, maj, min,
                                       fetch_deviceinfo, flags);
+    case DRM_BUS_FAUX:
+        return drmProcessFauxDevice(device, node, node_type, maj, min,
+                                    fetch_deviceinfo, flags);
     default:
         return -1;
    }
