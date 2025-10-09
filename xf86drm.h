@@ -890,8 +890,14 @@ typedef struct _drmHost1xDeviceInfo {
     char **compatible; /* NULL terminated list of compatible strings */
 } drmHost1xDeviceInfo, *drmHost1xDeviceInfoPtr;
 
+#define DRM_FAUX_DEVICE_NAME_LEN 512
+
+typedef struct _drmFauxBusInfo {
+    char name[DRM_FAUX_DEVICE_NAME_LEN];
+} drmFauxBusInfo, *drmFauxBusInfoPtr;
+
 typedef struct _drmFauxDeviceInfo {
-    char *name;
+    char *name; /* deprecated, use drmFauxBusInfo::name instead */
 } drmFauxDeviceInfo, *drmFauxDeviceInfoPtr;
 
 typedef struct _drmDevice {
@@ -903,6 +909,7 @@ typedef struct _drmDevice {
         drmUsbBusInfoPtr usb;
         drmPlatformBusInfoPtr platform;
         drmHost1xBusInfoPtr host1x;
+        drmFauxBusInfoPtr faux;
     } businfo;
     union {
         drmPciDeviceInfoPtr pci;

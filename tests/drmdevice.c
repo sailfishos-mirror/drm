@@ -101,9 +101,9 @@ print_device_info(drmDevicePtr device, int i, bool print_revision)
     } else if (device->bustype == DRM_BUS_FAUX) {
         printf("|   +-> faux\n");
 
-        printf("+-> deviceinfo\n");
+        printf("+-> businfo\n");
         printf("    +-> faux\n");
-        printf("        +-> name  %s\n", device->deviceinfo.faux->name);
+        printf("        +-> name  %s\n", device->businfo.faux->name);
     } else {
         printf("Unknown/unhandled bustype\n");
     }

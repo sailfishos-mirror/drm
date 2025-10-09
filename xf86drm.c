@@ -3798,7 +3798,7 @@ drm_public int drmDevicesEqual(drmDevicePtr a, drmDevicePtr b)
         return memcmp(a->businfo.host1x, b->businfo.host1x, sizeof(drmHost1xBusInfo)) == 0;
 
     case DRM_BUS_FAUX:
-        return memcmp(a->deviceinfo.faux, b->deviceinfo.faux, sizeof(drmFauxDeviceInfo)) == 0;
+        return memcmp(a->businfo.faux, b->businfo.faux, sizeof(drmFauxBusInfo)) == 0;
 
     default:
         break;
@@ -4472,7 +4472,7 @@ free_device:
     return ret;
 }
 
-static int drmParseFauxDeviceInfo(int maj, int min, drmFauxDeviceInfoPtr info)
+static int drmParseFauxBusInfo(int maj, int min, char *fullname)
 {
 #ifdef __linux__
     char path[PATH_MAX + 1] = "";
@@ -4488,13 +4488,12 @@ static int drmParseFauxDeviceInfo(int maj, int min, drmFauxDeviceInfoPtr info)
     if (!name)
         return -ENOENT;
 
-    info->name = strdup(name);
-    if (!info->name)
-        return -errno;
+    strncpy(fullname, name, DRM_FAUX_DEVICE_NAME_LEN - 1);
+    fullname[DRM_FAUX_DEVICE_NAME_LEN - 1] = '\0';
 
     return 0;
 #else
-#warning "Missing implementation of drmParseFauxDeviceInfo"
+#warning "Missing implementation of drmParseFauxBusInfo"
     return -EINVAL;
 #endif
 }
@@ -4508,17 +4507,25 @@ static int drmProcessFauxDevice(drmDevicePtr *device,
     char *ptr;
     int ret;
 
-    dev = drmDeviceAlloc(node_type, node, 0, sizeof(drmFauxDeviceInfo), &ptr);
+    dev = drmDeviceAlloc(node_type, node, sizeof(drmFauxBusInfo),
+                         sizeof(drmFauxDeviceInfo), &ptr);
     if (!dev)
         return -ENOMEM;
 
     dev->bustype = DRM_BUS_FAUX;
 
+    dev->businfo.faux = (drmFauxBusInfoPtr)ptr;
+
+    ret = drmParseFauxBusInfo(maj, min, dev->businfo.faux->name);
+    if (ret < 0)
+        goto free_device;
+
     if (fetch_deviceinfo) {
+        ptr += sizeof(drmFauxBusInfo);
         dev->deviceinfo.faux = (drmFauxDeviceInfoPtr)ptr;
 
-        ret = drmParseFauxDeviceInfo(maj, min, dev->deviceinfo.faux);
-        if (ret < 0)
+        dev->deviceinfo.faux->name = strdup(dev->businfo.faux->name);
+        if (!dev->deviceinfo.faux->name)
             goto free_device;
     }
 
