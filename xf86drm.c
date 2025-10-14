@@ -4020,12 +4020,6 @@ static void drmFreeHost1xDevice(drmDevicePtr device)
     }
 }
 
-static void drmFreeFauxDevice(drmDevicePtr device)
-{
-    if (device->deviceinfo.faux)
-        free(device->deviceinfo.faux->name);
-}
-
 drm_public void drmFreeDevice(drmDevicePtr *device)
 {
     if (device == NULL)
@@ -4039,10 +4033,6 @@ drm_public void drmFreeDevice(drmDevicePtr *device)
 
         case DRM_BUS_HOST1X:
             drmFreeHost1xDevice(*device);
-            break;
-
-        case DRM_BUS_FAUX:
-            drmFreeFauxDevice(*device);
             break;
         }
     }
@@ -4507,8 +4497,7 @@ static int drmProcessFauxDevice(drmDevicePtr *device,
     char *ptr;
     int ret;
 
-    dev = drmDeviceAlloc(node_type, node, sizeof(drmFauxBusInfo),
-                         sizeof(drmFauxDeviceInfo), &ptr);
+    dev = drmDeviceAlloc(node_type, node, sizeof(drmFauxBusInfo), 0, &ptr);
     if (!dev)
         return -ENOMEM;
 
@@ -4519,15 +4508,6 @@ static int drmProcessFauxDevice(drmDevicePtr *device,
     ret = drmParseFauxBusInfo(maj, min, dev->businfo.faux->name);
     if (ret < 0)
         goto free_device;
-
-    if (fetch_deviceinfo) {
-        ptr += sizeof(drmFauxBusInfo);
-        dev->deviceinfo.faux = (drmFauxDeviceInfoPtr)ptr;
-
-        dev->deviceinfo.faux->name = strdup(dev->businfo.faux->name);
-        if (!dev->deviceinfo.faux->name)
-            goto free_device;
-    }
 
     *device = dev;
 

@@ -896,10 +896,6 @@ typedef struct _drmFauxBusInfo {
     char name[DRM_FAUX_DEVICE_NAME_LEN];
 } drmFauxBusInfo, *drmFauxBusInfoPtr;
 
-typedef struct _drmFauxDeviceInfo {
-    char *name; /* deprecated, use drmFauxBusInfo::name instead */
-} drmFauxDeviceInfo, *drmFauxDeviceInfoPtr;
-
 typedef struct _drmDevice {
     char **nodes; /* DRM_NODE_MAX sized array */
     int available_nodes; /* DRM_NODE_* bitmask */
@@ -916,7 +912,6 @@ typedef struct _drmDevice {
         drmUsbDeviceInfoPtr usb;
         drmPlatformDeviceInfoPtr platform;
         drmHost1xDeviceInfoPtr host1x;
-        drmFauxDeviceInfoPtr faux;
     } deviceinfo;
 } drmDevice, *drmDevicePtr;
 
