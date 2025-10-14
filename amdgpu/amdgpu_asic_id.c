@@ -104,6 +104,45 @@ out:
 	return r;
 }
 
+static void amdgpu_parse_proc_cpuinfo(struct amdgpu_device *dev)
+{
+	const char *search_key = "model name";
+	char *line = NULL;
+	size_t len = 0;
+	FILE *fp;
+
+	fp = fopen("/proc/cpuinfo", "r");
+	if (fp == NULL) {
+		fprintf(stderr, "%s\n", strerror(errno));
+		return;
+	}
+
+	while (getline(&line, &len, fp) != -1) {
+		char *saveptr;
+		char *value;
+
+		if (strncmp(line, search_key, strlen(search_key)))
+			continue;
+
+		/* get content after colon and strip whitespace */
+		value = strtok_r(line, ":", &saveptr);
+		value = strtok_r(NULL, ":", &saveptr);
+		if (value == NULL)
+			continue;
+		while (*value == ' ' || *value == '\t')
+			value++;
+		saveptr = strchr(value, '\n');
+		if (saveptr)
+			*saveptr = '\0';
+
+		dev->marketing_name = strdup(value);
+		break;
+	}
+
+	free(line);
+	fclose(fp);
+}
+
 void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 {
 	FILE *fp;
@@ -112,6 +151,12 @@ void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 	ssize_t n;
 	int line_num = 1;
 	int r = 0;
+
+	if (dev->info.ids_flags & AMDGPU_IDS_FLAGS_FUSION) {
+		amdgpu_parse_proc_cpuinfo(dev);
+		if (dev->marketing_name != NULL)
+			return;
+	}
 
 	fp = fopen(AMDGPU_ASIC_ID_TABLE, "r");
 	if (!fp) {
