@@ -169,17 +169,11 @@ void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 	int line_num = 1;
 	int r = 0;
 
-	if (dev->info.ids_flags & AMDGPU_IDS_FLAGS_FUSION) {
-		amdgpu_parse_proc_cpuinfo(dev);
-		if (dev->marketing_name != NULL)
-			return;
-	}
-
 	fp = fopen(AMDGPU_ASIC_ID_TABLE, "r");
 	if (!fp) {
 		fprintf(stderr, "%s: %s\n", AMDGPU_ASIC_ID_TABLE,
 			strerror(errno));
-		return;
+		goto get_cpu;
 	}
 
 	/* 1st valid line is file version */
@@ -220,4 +214,10 @@ void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 
 	free(line);
 	fclose(fp);
+
+get_cpu:
+	if (dev->info.ids_flags & AMDGPU_IDS_FLAGS_FUSION &&
+	    dev->marketing_name == NULL) {
+		amdgpu_parse_proc_cpuinfo(dev);
+	}
 }
