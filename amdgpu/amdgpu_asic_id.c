@@ -107,6 +107,7 @@ out:
 static void amdgpu_parse_proc_cpuinfo(struct amdgpu_device *dev)
 {
 	const char *search_key = "model name";
+	const char *radeon_key = "Radeon";
 	char *line = NULL;
 	size_t len = 0;
 	FILE *fp;
@@ -124,18 +125,34 @@ static void amdgpu_parse_proc_cpuinfo(struct amdgpu_device *dev)
 		if (strncmp(line, search_key, strlen(search_key)))
 			continue;
 
-		/* get content after colon and strip whitespace */
-		value = strtok_r(line, ":", &saveptr);
-		value = strtok_r(NULL, ":", &saveptr);
-		if (value == NULL)
-			continue;
+		/* check for parts that have both CPU and GPU information */
+		value = strstr(line, radeon_key);
+
+		/* get content after the first colon */
+		if (value == NULL) {
+			value = strstr(line, ":");
+			if (value == NULL)
+				continue;
+			value++;
+		}
+
+		/* strip whitespace */
 		while (*value == ' ' || *value == '\t')
 			value++;
 		saveptr = strchr(value, '\n');
 		if (saveptr)
 			*saveptr = '\0';
 
-		dev->marketing_name = strdup(value);
+		/* Add AMD to the new string if it's missing from slicing/dicing */
+		if (strncmp(value, "AMD", 3) != 0) {
+			char *tmp = malloc(strlen(value) + 5);
+
+			if (!tmp)
+				break;
+			sprintf(tmp, "AMD %s", value);
+			dev->marketing_name = tmp;
+		} else
+			dev->marketing_name = strdup(value);
 		break;
 	}
 
