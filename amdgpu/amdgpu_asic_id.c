@@ -165,6 +165,110 @@ static void amdgpu_parse_proc_cpuinfo(struct amdgpu_device *dev)
 	fclose(fp);
 }
 
+static char *join_path(const char *dir, const char *file) {
+	size_t dir_len = strlen(dir);
+	size_t file_len = strlen(file);
+	char *full_path = NULL;
+
+	int need_slash = ((dir_len > 0) && (dir[dir_len - 1] != '/'));
+	size_t total_len = dir_len + (need_slash ? 1 : 0) + file_len + 1; // +1 for null terminator
+
+	if (dir_len == 0) {
+		return strdup(file);
+	}
+
+	full_path = malloc(total_len);
+	if (!full_path) {
+		return NULL; // Memory allocation failed
+	}
+
+	strcpy(full_path, dir);
+	if (need_slash) {
+		full_path[dir_len] = '/';
+		dir_len++;
+	}
+	strcpy(full_path + dir_len, file);
+
+	return full_path;
+}
+
+static char **split_env_var(const char *env_var_content)
+{
+	char **ret = NULL;
+	char *dup_env_val;
+	int elements = 1;
+	int index = 1;
+
+	if (!env_var_content || env_var_content[0] == '\0')
+		return NULL;
+
+	for(char *p = (char *)env_var_content; *p; p++) {
+		if (*p == ':')
+			elements++;
+	}
+
+	dup_env_val = strdup(env_var_content);
+	if (!dup_env_val) {
+		return NULL;
+	}
+	ret = malloc(sizeof(char *) * (elements + 1));
+	ret[0] = dup_env_val;
+	for(char *p = (char *)dup_env_val; *p; p++) {
+		if (*p == ':') {
+			*p = 0;
+			ret[index++] = p + 1;
+		}
+	}
+	ret[index] = NULL; // ensure that the last element in the array is NULL
+	return ret;
+}
+
+static void split_env_var_free(char **split_var)
+{
+	if (split_var) {
+		// remember that the first element also points to the whole duplicated string,
+		// which was modified in place by replacing ':' with '\0' characters
+		free(split_var[0]);
+		free(split_var);
+	}
+}
+
+static char *find_asic_id_table(void)
+{
+	// first check the paths in AMDGPU_ASIC_ID_TABLE_PATHS environment variable
+	const char *amdgpu_asic_id_table_paths = secure_getenv("AMDGPU_ASIC_ID_TABLE_PATHS");
+	char *file_name = NULL;
+	char *found_path = NULL;
+	char **paths = NULL;
+
+	if (!amdgpu_asic_id_table_paths)
+		return NULL;
+
+	// extract the file name from AMDGPU_ASIC_ID_TABLE
+	file_name = strrchr(AMDGPU_ASIC_ID_TABLE, '/');
+	if (!file_name)
+		return NULL;
+	file_name++; // skip the '/'
+
+	paths = split_env_var(amdgpu_asic_id_table_paths);
+	if (!paths)
+		return NULL;
+
+	// for each path, join with file_name and check if it exists
+	for (int i = 0; paths[i] != NULL; i++) {
+		char *full_path = join_path(paths[i], file_name);
+		if (!full_path) {
+			continue;
+		}
+		if (access(full_path, R_OK) == 0) {
+			found_path = full_path;
+			break;
+		}
+	}
+	split_env_var_free(paths);
+	return found_path;
+}
+
 void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 {
 	FILE *fp;
@@ -173,10 +277,12 @@ void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 	ssize_t n;
 	int line_num = 1;
 	int r = 0;
-	const char *amdgpu_asic_id_table_path = secure_getenv("AMDGPU_ASIC_ID_TABLE_PATH");
 
-	if (amdgpu_asic_id_table_path == NULL || amdgpu_asic_id_table_path[0] == '\0')
-		amdgpu_asic_id_table_path = AMDGPU_ASIC_ID_TABLE;
+	char *amdgpu_asic_id_table_path = find_asic_id_table();
+
+	// if not found, use the default AMDGPU_ASIC_ID_TABLE path
+	if (!amdgpu_asic_id_table_path)
+		amdgpu_asic_id_table_path = strdup(AMDGPU_ASIC_ID_TABLE);
 
 	fp = fopen(amdgpu_asic_id_table_path, "r");
 	if (!fp) {
@@ -225,6 +331,7 @@ void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 	fclose(fp);
 
 get_cpu:
+	free(amdgpu_asic_id_table_path);
 	if (dev->info.ids_flags & AMDGPU_IDS_FLAGS_FUSION &&
 	    dev->marketing_name == NULL) {
 		amdgpu_parse_proc_cpuinfo(dev);
