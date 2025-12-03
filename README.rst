@@ -55,6 +55,6 @@ AMDGPU ASIC table file
 
 The AMDGPU driver requires the `amdgpu.ids` file. It is usually located at
 `$PREFIX/share/libdrm`, but it is possible to specify a set of alternative
-paths at runtime by setting the `AMDGPU_ASIC_ID_TABLE_PATH` environment
+paths at runtime by setting the `AMDGPU_ASIC_ID_TABLE_PATHS` environment
 variable with one or more colon-separated paths where to search for the
 `amdgpu.ids` file.
