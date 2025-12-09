@@ -165,6 +165,7 @@ static void amdgpu_parse_proc_cpuinfo(struct amdgpu_device *dev)
 	fclose(fp);
 }
 
+#if HAVE_SECURE_GETENV
 static char *join_path(const char *dir, const char *file) {
 	size_t dir_len = strlen(dir);
 	size_t file_len = strlen(file);
@@ -268,6 +269,7 @@ static char *find_asic_id_table(void)
 	split_env_var_free(paths);
 	return found_path;
 }
+#endif
 
 void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 {
@@ -278,8 +280,12 @@ void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 	int line_num = 1;
 	int r = 0;
 
-	char *amdgpu_asic_id_table_path = find_asic_id_table();
-
+	char *amdgpu_asic_id_table_path = NULL;
+#if HAVE_SECURE_GETENV
+	// if this system lacks secure_getenv(), don't allow extra paths
+	// for security reasons.
+	amdgpu_asic_id_table_path = find_asic_id_table();
+#endif
 	// if not found, use the default AMDGPU_ASIC_ID_TABLE path
 	if (!amdgpu_asic_id_table_path)
 		amdgpu_asic_id_table_path = strdup(AMDGPU_ASIC_ID_TABLE);

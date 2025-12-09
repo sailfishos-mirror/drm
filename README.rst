@@ -58,3 +58,6 @@ The AMDGPU driver requires the `amdgpu.ids` file. It is usually located at
 paths at runtime by setting the `AMDGPU_ASIC_ID_TABLE_PATHS` environment
 variable with one or more colon-separated paths where to search for the
 `amdgpu.ids` file.
+
+For this option to be available, the C library must support secure_getenv()
+function. In systems without it (like NetBSD), this option won't be available.

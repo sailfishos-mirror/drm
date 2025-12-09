@@ -51,6 +51,8 @@ dep_threads = dependency('threads')
 
 cc = meson.get_compiler('c')
 
+config.set10('HAVE_SECURE_GETENV', cc.has_function('secure_getenv'))
+
 android = cc.compiles('''int func() { return __ANDROID__; }''')
 
 # Solaris / Illumos
