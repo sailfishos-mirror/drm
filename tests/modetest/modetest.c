@@ -1974,7 +1974,8 @@ static int parse_connector(struct pipe_arg *pipe, const char *arg)
 	unsigned int len;
 	unsigned int i;
 	const char *p;
-	char *endp;
+	const char *endp;
+	char *endp_tok;
 
 	pipe->vrefresh = 0;
 	pipe->crtc_id = (uint32_t)-1;
@@ -2012,7 +2013,8 @@ static int parse_connector(struct pipe_arg *pipe, const char *arg)
 		return -1;
 	if (*endp == '@') {
 		arg = endp + 1;
-		pipe->crtc_id = strtoul(arg, &endp, 10);
+		pipe->crtc_id = strtoul(arg, &endp_tok, 10);
+		endp = endp_tok;
 	}
 	if (*endp != ':')
 		return -1;
@@ -2028,8 +2030,8 @@ static int parse_connector(struct pipe_arg *pipe, const char *arg)
 	pipe->mode_str[len] = '\0';
 
 	if (*p == '-') {
-		pipe->vrefresh = strtof(p + 1, &endp);
-		p = endp;
+		pipe->vrefresh = strtof(p + 1, &endp_tok);
+		p = endp_tok;
 	}
 
 	if (*p == '@') {
