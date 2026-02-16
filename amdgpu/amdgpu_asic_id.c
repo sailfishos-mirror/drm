@@ -238,7 +238,7 @@ static char *find_asic_id_table(void)
 {
 	// first check the paths in AMDGPU_ASIC_ID_TABLE_PATHS environment variable
 	const char *amdgpu_asic_id_table_paths = secure_getenv("AMDGPU_ASIC_ID_TABLE_PATHS");
-	char *file_name = NULL;
+	const char *file_name = NULL;
 	char *found_path = NULL;
 	char **paths = NULL;
 
