@@ -348,9 +348,10 @@ drmGetFormatModifierNameFromNvidia(uint64_t modifier)
      * testing against TEGRA_TILE */
     if ((modifier & 0x10) == 0x10) {
         char *mod_nvidia;
-        asprintf(&mod_nvidia, "BLOCK_LINEAR_2D,HEIGHT=%"PRIu64",KIND=%"PRIu64","
+        if (asprintf(&mod_nvidia, "BLOCK_LINEAR_2D,HEIGHT=%"PRIu64",KIND=%"PRIu64","
                  "GEN=%"PRIu64",SECTOR=%"PRIu64",COMPRESSION=%"PRIu64"", height,
-                 kind, gen, sector, compression);
+                 kind, gen, sector, compression) < 0)
+            mod_nvidia = NULL;
         return mod_nvidia;
     }
 
@@ -542,7 +543,8 @@ drmGetFormatModifierNameFromAmlogic(uint64_t modifier)
     else
         opts_str = "0";
 
-    asprintf(&mod_amlogic, "FBC,LAYOUT=%s,OPTIONS=%s", layout_str, opts_str);
+    if (asprintf(&mod_amlogic, "FBC,LAYOUT=%s,OPTIONS=%s", layout_str, opts_str) < 0)
+        mod_amlogic = NULL;
     return mod_amlogic;
 }
 
@@ -606,7 +608,8 @@ drmGetFormatModifierNameFromVivante(uint64_t modifier)
 	break;
     }
 
-    asprintf(&mod_vivante, "%s%s%s", color_tiling, tile_status, compression);
+    if (asprintf(&mod_vivante, "%s%s%s", color_tiling, tile_status, compression) < 0)
+        mod_vivante = NULL;
     return mod_vivante;
 }
 
