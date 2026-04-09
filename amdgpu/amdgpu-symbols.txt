@@ -76,7 +76,9 @@ amdgpu_query_video_caps_info
 amdgpu_read_mm_registers
 amdgpu_va_manager_alloc
 amdgpu_va_manager_init
+amdgpu_va_manager_init2
 amdgpu_va_manager_deinit
+amdgpu_va_manager_query_sw_info
 amdgpu_va_range_alloc
 amdgpu_va_range_alloc2
 amdgpu_va_range_free

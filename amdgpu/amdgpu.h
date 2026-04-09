@@ -105,6 +105,19 @@ enum amdgpu_gpu_va_range
 
 enum amdgpu_sw_info {
 	amdgpu_sw_info_address32_hi = 0,
+	/** Query the PRT control bit when the half VA range is reserved for
+	 * PRT when the device is initialized. This depends on the GFX version.
+	 * A return value of ~0 should be ignored.
+	 */
+	amdgpu_sw_info_address_prt_wa_control_bit = 1,
+};
+
+enum amdgpu_va_manager_sw_info {
+	/** Query the PRT control bit when the half VA range is reserved for
+	 * PRT with AMDGPU_VA_MGR_RESERVE_HALF_VA_FOR_PRT. The default value of
+	 * ~0 shouldn't be considered a valid value.
+	 */
+	amdgpu_va_manager_sw_info_address_prt_wa_control_bit = 0,
 };
 
 /*--------------------------------------------------------------------------*/
@@ -1467,6 +1480,14 @@ void amdgpu_va_manager_init(amdgpu_va_manager_handle va_mgr,
 			    uint64_t high_va_offset, uint64_t high_va_max,
 			    uint32_t virtual_address_alignment);
 
+#define AMDGPU_VA_MGR_RESERVE_HALF_VA_FOR_PRT 0x1
+
+void amdgpu_va_manager_init2(struct amdgpu_va_manager *va_mgr,
+			     uint64_t low_va_offset, uint64_t low_va_max,
+			     uint64_t high_va_offset, uint64_t high_va_max,
+			     uint32_t virtual_address_alignment,
+			     uint32_t flags);
+
 void amdgpu_va_manager_deinit(amdgpu_va_manager_handle va_mgr);
 
 /**
@@ -1483,6 +1504,21 @@ int amdgpu_va_range_alloc2(amdgpu_va_manager_handle va_mgr,
 			   uint64_t *va_base_allocated,
 			   amdgpu_va_handle *va_range_handle,
 			   uint64_t flags);
+
+/**
+ * Query VA manager information.
+ *
+ * \param   va_mgr  - \c [in] VA manager
+ * \param   info    - \c [in] amdgpu_va_manager_sw_info_*
+ * \param   value   - \c [out] Pointer to the return value.
+ *
+ * \return   0 on success\n
+ *          <0 - Negative POSIX error code
+ *
+*/
+int amdgpu_va_manager_query_sw_info(struct amdgpu_va_manager *va_mgr,
+				    enum amdgpu_va_manager_sw_info info,
+				    void *value);
 
 /**
  *  VA mapping/unmapping for the buffer object
