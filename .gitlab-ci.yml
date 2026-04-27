@@ -18,9 +18,9 @@ include:
   - project: 'freedesktop/ci-templates'
     ref: *template_sha
     file:
-    - '/templates/debian.yml'
-    - '/templates/freebsd.yml'
-    - '/templates/ci-fairy.yml'
+      - '/templates/debian.yml'
+      - '/templates/freebsd.yml'
+      - '/templates/ci-fairy.yml'
 
 variables:
   FDO_UPSTREAM_REPO: mesa/libdrm
