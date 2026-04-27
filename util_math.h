@@ -24,6 +24,8 @@
 #ifndef _UTIL_MATH_H_
 #define _UTIL_MATH_H_
 
+#include <stdint.h>
+
 #define MIN2( A, B )   ( (A)<(B) ? (A) : (B) )
 #define MAX2( A, B )   ( (A)>(B) ? (A) : (B) )
 #define MAX3( A, B, C ) ((A) > (B) ? MAX2(A, C) : MAX2(B, C))
