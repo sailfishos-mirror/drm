@@ -144,14 +144,17 @@ static void amdgpu_device_reference(struct amdgpu_device **dst,
 	*dst = src;
 }
 
-static int amdgpu_query_gfx_level_major(amdgpu_device_handle dev,
-					uint8_t *gfx_ip_version_major)
+#define IP_VERSION_MAJ(ver) ((ver >> 16) & 0xFF)
+#define IP_VERSION_MIN(ver) ((ver >> 8) & 0xFF)
+#define IP_VERSION_REV(ver) (ver & 0xFF)
+
+static int amdgpu_query_gfx_version(amdgpu_device_handle dev, uint32_t *gfx_version)
 {
 	struct drm_amdgpu_info_hw_ip ip_info;
 	uint32_t gfx_ip_count = 0;
 	int r;
 
-	*gfx_ip_version_major = 0;
+	*gfx_version = 0;
 
 	r = amdgpu_query_hw_ip_count(dev, AMDGPU_HW_IP_GFX, &gfx_ip_count);
 	if (r)
@@ -169,12 +172,32 @@ static int amdgpu_query_gfx_level_major(amdgpu_device_handle dev,
 
 	/* GFX6-8 don't set ip_discovery_version. */
 	if (dev->minor_version >= 48 && ip_info.ip_discovery_version) {
-		*gfx_ip_version_major = (ip_info.ip_discovery_version >> 16) & 0xff;
+		*gfx_version = ip_info.ip_discovery_version;
 	} else {
-		*gfx_ip_version_major = ip_info.hw_ip_version_major;
+		*gfx_version = ip_info.hw_ip_version_major << 16 |
+			       ip_info.hw_ip_version_minor << 8;
 	}
 
 	return r;
+}
+
+static bool amdgpu_needs_smem_prt_wa(amdgpu_device_handle dev)
+{
+	uint32_t gfx_version;
+	int r;
+
+	r = amdgpu_query_gfx_version(dev, &gfx_version);
+	if (r) {
+		/* Ignore if it's not possible to determine the GFX version. */
+		return false;
+	}
+
+	return IP_VERSION_MAJ(gfx_version) >= 6 &&
+	       IP_VERSION_MAJ(gfx_version) <= 12 &&
+	       IP_VERSION_MAJ(gfx_version) != 9 &&
+	       !(IP_VERSION_MAJ(gfx_version) == 11 &&
+		 IP_VERSION_MIN(gfx_version) == 5 &&
+		 IP_VERSION_REV(gfx_version) == 6);
 }
 
 static int _amdgpu_device_initialize(int fd,
@@ -184,7 +207,6 @@ static int _amdgpu_device_initialize(int fd,
 				     bool deduplicate_device)
 {
 	struct amdgpu_device *dev = NULL;
-	uint8_t gfx_ip_version_major = 0;
 	drmVersionPtr version;
 	int r;
 	int flag_auth = 0;
@@ -279,16 +301,11 @@ static int _amdgpu_device_initialize(int fd,
 		goto cleanup;
 	}
 
-	r = amdgpu_query_gfx_level_major(dev, &gfx_ip_version_major);
-	if (!r) {
-		/* Split the HIGH addr space for GFX6-GFX12, except GFX9 to
-		 * implement a workaround for SMEM loads with NULL PRT pages.
-		 * This is silently ignored if querying the GFX level failed.
+	if (amdgpu_needs_smem_prt_wa(dev)) {
+		/* Reserve half of the addr space to implement a workaround for SMEM loads
+		 * with NULL PRT pages.
 		 */
-		if (gfx_ip_version_major >= 6 && gfx_ip_version_major <= 12 &&
-		    gfx_ip_version_major != 9) {
-			va_mgr_flags |= AMDGPU_VA_MGR_RESERVE_HALF_VA_FOR_PRT;
-		}
+		va_mgr_flags |= AMDGPU_VA_MGR_RESERVE_HALF_VA_FOR_PRT;
 	}
 
 	amdgpu_va_manager_init2(&dev->va_mgr,
