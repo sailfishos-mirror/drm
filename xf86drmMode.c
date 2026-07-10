@@ -559,10 +559,14 @@ retry:
 	    counts.count_modes < conn.count_modes ||
 	    counts.count_encoders < conn.count_encoders) {
 		drmFree(U642VOID(conn.props_ptr));
+		conn.props_ptr = 0;
 		drmFree(U642VOID(conn.prop_values_ptr));
+		conn.prop_values_ptr = 0;
 		if (U642VOID(conn.modes_ptr) != &stack_mode)
 			drmFree(U642VOID(conn.modes_ptr));
+		conn.modes_ptr = 0;
 		drmFree(U642VOID(conn.encoders_ptr));
+		conn.encoders_ptr = 0;
 
 		goto retry;
 	}
