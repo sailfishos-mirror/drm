@@ -72,15 +72,15 @@ static inline int DRM_IOCTL(int fd, unsigned long cmd, void *arg)
  * Util functions
  */
 
-static void* drmAllocCpy(char *array, int count, int entry_size)
+static void* drmAllocCpy(char *array, size_t count, size_t entry_size)
 {
 	char *r;
-	int i;
+	size_t i;
 
 	if (!count || !array || !entry_size)
 		return 0;
 
-	if (!(r = drmMalloc(count*entry_size)))
+	if (!(r = calloc(count, entry_size)))
 		return 0;
 
 	for (i = 0; i < count; i++)
@@ -174,22 +174,22 @@ retry:
 	counts = res;
 
 	if (res.count_fbs) {
-		res.fb_id_ptr = VOID2U64(drmMalloc(res.count_fbs*sizeof(uint32_t)));
+		res.fb_id_ptr = VOID2U64(calloc(res.count_fbs, sizeof(uint32_t)));
 		if (!res.fb_id_ptr)
 			goto err_allocs;
 	}
 	if (res.count_crtcs) {
-		res.crtc_id_ptr = VOID2U64(drmMalloc(res.count_crtcs*sizeof(uint32_t)));
+		res.crtc_id_ptr = VOID2U64(calloc(res.count_crtcs, sizeof(uint32_t)));
 		if (!res.crtc_id_ptr)
 			goto err_allocs;
 	}
 	if (res.count_connectors) {
-		res.connector_id_ptr = VOID2U64(drmMalloc(res.count_connectors*sizeof(uint32_t)));
+		res.connector_id_ptr = VOID2U64(calloc(res.count_connectors, sizeof(uint32_t)));
 		if (!res.connector_id_ptr)
 			goto err_allocs;
 	}
 	if (res.count_encoders) {
-		res.encoder_id_ptr = VOID2U64(drmMalloc(res.count_encoders*sizeof(uint32_t)));
+		res.encoder_id_ptr = VOID2U64(calloc(res.count_encoders, sizeof(uint32_t)));
 		if (!res.encoder_id_ptr)
 			goto err_allocs;
 	}
@@ -525,16 +525,16 @@ retry:
 	counts = conn;
 
 	if (conn.count_props) {
-		conn.props_ptr = VOID2U64(drmMalloc(conn.count_props*sizeof(uint32_t)));
+		conn.props_ptr = VOID2U64(calloc(conn.count_props, sizeof(uint32_t)));
 		if (!conn.props_ptr)
 			goto err_allocs;
-		conn.prop_values_ptr = VOID2U64(drmMalloc(conn.count_props*sizeof(uint64_t)));
+		conn.prop_values_ptr = VOID2U64(calloc(conn.count_props, sizeof(uint64_t)));
 		if (!conn.prop_values_ptr)
 			goto err_allocs;
 	}
 
 	if (conn.count_modes) {
-		conn.modes_ptr = VOID2U64(drmMalloc(conn.count_modes*sizeof(struct drm_mode_modeinfo)));
+		conn.modes_ptr = VOID2U64(calloc(conn.count_modes, sizeof(struct drm_mode_modeinfo)));
 		if (!conn.modes_ptr)
 			goto err_allocs;
 	} else {
@@ -543,7 +543,7 @@ retry:
 	}
 
 	if (conn.count_encoders) {
-		conn.encoders_ptr = VOID2U64(drmMalloc(conn.count_encoders*sizeof(uint32_t)));
+		conn.encoders_ptr = VOID2U64(calloc(conn.count_encoders, sizeof(uint32_t)));
 		if (!conn.encoders_ptr)
 			goto err_allocs;
 	}
@@ -681,14 +681,14 @@ drm_public drmModePropertyPtr drmModeGetProperty(int fd, uint32_t property_id)
 		return 0;
 
 	if (prop.count_values)
-		prop.values_ptr = VOID2U64(drmMalloc(prop.count_values * sizeof(uint64_t)));
+		prop.values_ptr = VOID2U64(calloc(prop.count_values, sizeof(uint64_t)));
 
 	if (prop.count_enum_blobs && (prop.flags & (DRM_MODE_PROP_ENUM | DRM_MODE_PROP_BITMASK)))
-		prop.enum_blob_ptr = VOID2U64(drmMalloc(prop.count_enum_blobs * sizeof(struct drm_mode_property_enum)));
+		prop.enum_blob_ptr = VOID2U64(calloc(prop.count_enum_blobs, sizeof(struct drm_mode_property_enum)));
 
 	if (prop.count_enum_blobs && (prop.flags & DRM_MODE_PROP_BLOB)) {
-		prop.values_ptr = VOID2U64(drmMalloc(prop.count_enum_blobs * sizeof(uint32_t)));
-		prop.enum_blob_ptr = VOID2U64(drmMalloc(prop.count_enum_blobs * sizeof(uint32_t)));
+		prop.values_ptr = VOID2U64(calloc(prop.count_enum_blobs, sizeof(uint32_t)));
+		prop.enum_blob_ptr = VOID2U64(calloc(prop.count_enum_blobs, sizeof(uint32_t)));
 	}
 
 	if (drmIoctl(fd, DRM_IOCTL_MODE_GETPROPERTY, &prop)) {
@@ -1290,12 +1290,10 @@ retry:
 	count = properties.count_props;
 
 	if (count) {
-		properties.props_ptr = VOID2U64(drmMalloc(count *
-							  sizeof(uint32_t)));
+		properties.props_ptr = VOID2U64(calloc(count, sizeof(uint32_t)));
 		if (!properties.props_ptr)
 			goto err_allocs;
-		properties.prop_values_ptr = VOID2U64(drmMalloc(count *
-						      sizeof(uint64_t)));
+		properties.prop_values_ptr = VOID2U64(calloc(count, sizeof(uint64_t)));
 		if (!properties.prop_values_ptr)
 			goto err_allocs;
 	}
@@ -1400,7 +1398,7 @@ drm_public drmModeAtomicReqPtr drmModeAtomicDuplicate(const drmModeAtomicReqPtr 
 	new->size_items = old->size_items;
 
 	if (old->size_items) {
-		new->items = drmMalloc(old->size_items * sizeof(*new->items));
+		new->items = calloc(old->size_items, sizeof(*new->items));
 		if (!new->items) {
 			free(new);
 			return NULL;
@@ -1569,25 +1567,25 @@ drm_public int drmModeAtomicCommit(int fd, const drmModeAtomicReqPtr req,
 	for (i = 0; i < sorted->cursor; i++)
 		sorted->items[i].cursor = i;
 
-	objs_ptr = drmMalloc(atomic.count_objs * sizeof objs_ptr[0]);
+	objs_ptr = calloc(atomic.count_objs, sizeof objs_ptr[0]);
 	if (!objs_ptr) {
 		errno = ENOMEM;
 		goto out;
 	}
 
-	count_props_ptr = drmMalloc(atomic.count_objs * sizeof count_props_ptr[0]);
+	count_props_ptr = calloc(atomic.count_objs, sizeof count_props_ptr[0]);
 	if (!count_props_ptr) {
 		errno = ENOMEM;
 		goto out;
 	}
 
-	props_ptr = drmMalloc(sorted->cursor * sizeof props_ptr[0]);
+	props_ptr = calloc(sorted->cursor, sizeof props_ptr[0]);
 	if (!props_ptr) {
 		errno = ENOMEM;
 		goto out;
 	}
 
-	prop_values_ptr = drmMalloc(sorted->cursor * sizeof prop_values_ptr[0]);
+	prop_values_ptr = calloc(sorted->cursor, sizeof prop_values_ptr[0]);
 	if (!prop_values_ptr) {
 		errno = ENOMEM;
 		goto out;

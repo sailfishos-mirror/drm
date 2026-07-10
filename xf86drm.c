@@ -1690,7 +1690,7 @@ drm_public int drmMarkBufs(int fd, double low, double high)
     if (!info.count)
         return -EINVAL;
 
-    if (!(info.list = drmMalloc(info.count * sizeof(*info.list))))
+    if (!(info.list = calloc(info.count, sizeof(*info.list))))
         return -ENOMEM;
 
     if (drmIoctl(fd, DRM_IOCTL_INFO_BUFS, &info)) {
@@ -1828,7 +1828,7 @@ drm_public drmBufInfoPtr drmGetBufInfo(int fd)
         return NULL;
 
     if (info.count) {
-        if (!(info.list = drmMalloc(info.count * sizeof(*info.list))))
+        if (!(info.list = calloc(info.count, sizeof(*info.list))))
             return NULL;
 
         if (drmIoctl(fd, DRM_IOCTL_INFO_BUFS, &info)) {
@@ -1838,7 +1838,7 @@ drm_public drmBufInfoPtr drmGetBufInfo(int fd)
 
         retval = drmMalloc(sizeof(*retval));
         retval->count = info.count;
-        if (!(retval->list = drmMalloc(info.count * sizeof(*retval->list)))) {
+        if (!(retval->list = calloc(info.count, sizeof(*retval->list)))) {
                 drmFree(retval);
                 drmFree(info.list);
                 return NULL;
@@ -1884,7 +1884,7 @@ drm_public drmBufMapPtr drmMapBufs(int fd)
     if (!bufs.count)
         return NULL;
 
-    if (!(bufs.list = drmMalloc(bufs.count * sizeof(*bufs.list))))
+    if (!(bufs.list = calloc(bufs.count, sizeof(*bufs.list))))
         return NULL;
 
     if (drmIoctl(fd, DRM_IOCTL_MAP_BUFS, &bufs)) {
@@ -1894,7 +1894,7 @@ drm_public drmBufMapPtr drmMapBufs(int fd)
 
     retval = drmMalloc(sizeof(*retval));
     retval->count = bufs.count;
-    retval->list  = drmMalloc(bufs.count * sizeof(*retval->list));
+    retval->list  = calloc(bufs.count, sizeof(*retval->list));
     for (i = 0; i < bufs.count; i++) {
         retval->list[i].idx     = bufs.list[i].idx;
         retval->list[i].total   = bufs.list[i].total;
@@ -2041,9 +2041,9 @@ drm_public drm_context_t *drmGetReservedContextList(int fd, int *count)
     if (!res.count)
         return NULL;
 
-    if (!(list   = drmMalloc(res.count * sizeof(*list))))
+    if (!(list   = calloc(res.count, sizeof(*list))))
         return NULL;
-    if (!(retval = drmMalloc(res.count * sizeof(*retval))))
+    if (!(retval = calloc(res.count, sizeof(*retval))))
         goto err_free_list;
 
     res.contexts = list;
