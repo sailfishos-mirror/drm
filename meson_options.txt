@@ -54,11 +54,6 @@ option(
   description : '''Enable support for EXYNOS's experimental KMS API.''',
 )
 option(
-  'freedreno',
-  type : 'feature',
-  description : '''Enable support for freedreno's KMS API.''',
-)
-option(
   'tegra',
   type : 'feature',
   description : '''Enable support for Tegra's experimental KMS API.''',
@@ -87,12 +82,6 @@ option(
   'valgrind',
   type : 'feature',
   description : 'Build libdrm with valgrind support.',
-)
-option(
-  'freedreno-kgsl',
-  type : 'boolean',
-  value : false,
-  description : 'Enable support for freedreno to use downstream android kernel API.',
 )
 option(
   'install-test-programs',

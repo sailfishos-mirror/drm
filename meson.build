@@ -43,7 +43,6 @@ pkg = import('pkgconfig')
 config = configuration_data()
 
 config.set10('UDEV', get_option('udev'))
-with_freedreno_kgsl = get_option('freedreno-kgsl')
 with_install_tests = get_option('install-test-programs')
 with_tests = get_option('tests')
 
@@ -129,13 +128,6 @@ with_omap = get_option('omap') \
   .enabled()
 summary('OMAP', with_omap)
 
-with_freedreno = get_option('freedreno') \
-  .require(with_atomics, error_message : 'libdrm_freedreno requires atomics') \
-  .disable_auto_if(not ['arm', 'aarch64'].contains(host_machine.cpu_family())) \
-  .allowed()
-summary('Freedreno', with_freedreno)
-summary('Freedreon-kgsl', with_freedreno_kgsl)
-
 with_tegra = get_option('tegra') \
   .require(with_atomics, error_message : 'libdrm_tegra requires atomics') \
   .disable_auto_if(not ['arm', 'aarch64'].contains(host_machine.cpu_family())) \
@@ -211,9 +203,6 @@ dep_cairo = dependency('cairo', required : get_option('cairo-tests'))
 with_cairo_tests = dep_cairo.found()
 
 valgrind_version = []
-if with_freedreno
-  valgrind_version = '>=3.10.0'
-endif
 dep_valgrind = dependency('valgrind', required : get_option('valgrind'), version : valgrind_version)
 with_valgrind = dep_valgrind.found()
 
@@ -224,7 +213,6 @@ config.set10('HAVE_VISIBILITY', cc.has_function_attribute('visibility:hidden'))
 
 foreach t : [
              [with_exynos, 'EXYNOS'],
-             [with_freedreno_kgsl, 'FREEDRENO_KGSL'],
              [with_intel, 'INTEL'],
              [with_nouveau, 'NOUVEAU'],
              [with_radeon, 'RADEON'],
@@ -235,9 +223,6 @@ foreach t : [
             ]
   config.set10('HAVE_@0@'.format(t[1]), t[0])
 endforeach
-if with_freedreno_kgsl and not with_freedreno
-  error('cannot enable freedreno-kgsl without freedreno support')
-endif
 config.set10('_GNU_SOURCE', true)
 
 if target_machine.endian() == 'big'
@@ -340,9 +325,6 @@ if with_omap
 endif
 if with_exynos
   subdir('exynos')
-endif
-if with_freedreno
-  subdir('freedreno')
 endif
 if with_tegra
   subdir('tegra')
