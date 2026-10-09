@@ -88,6 +88,10 @@ struct amdgpu_device {
 	unsigned minor_version;
 
 	char *marketing_name;
+	/** PCI subsystem ids; valid only if has_subsys_id is set. */
+	uint16_t subsystem_vendor_id;
+	uint16_t subsystem_device_id;
+	bool has_subsys_id;
 	/** List of buffer handles. Protected by bo_table_mutex. */
 	struct handle_table bo_handles;
 	/** List of buffer GEM flink names. Protected by bo_table_mutex. */

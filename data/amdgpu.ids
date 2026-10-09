@@ -2,6 +2,10 @@
 #
 # Syntax:
 # device_id,	revision_id,	product_name        <-- single tab after comma
+#
+# An entry may be followed by child lines that override the product name
+# for a specific board:
+#	subsystem_vendor_id,	subsystem_device_id,	product_name
 
 1.0.0
 1114,	C2,	AMD Radeon 860M Graphics

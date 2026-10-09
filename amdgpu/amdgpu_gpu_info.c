@@ -189,6 +189,21 @@ drm_private int amdgpu_query_gpu_info_init(amdgpu_device_handle dev)
 	dev->info.vce_harvest_config = dev->dev_info.vce_harvest_config;
 	dev->info.pci_rev_id = dev->dev_info.pci_rev;
 
+	{
+		drmDevicePtr device;
+
+		if (!drmGetDevice2(dev->fd, 0, &device)) {
+			if (device->bustype == DRM_BUS_PCI) {
+				dev->subsystem_vendor_id =
+					device->deviceinfo.pci->subvendor_id;
+				dev->subsystem_device_id =
+					device->deviceinfo.pci->subdevice_id;
+				dev->has_subsys_id = true;
+			}
+			drmFreeDevice(&device);
+		}
+	}
+
 	if (dev->info.family_id < AMDGPU_FAMILY_AI) {
 		unsigned nse = MIN2(dev->info.num_shader_engines,
 				    ARRAY_SIZE(dev->info.backend_disable));

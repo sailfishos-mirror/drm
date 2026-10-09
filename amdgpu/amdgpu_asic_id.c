@@ -39,6 +39,11 @@
 #include "amdgpu_drm.h"
 #include "amdgpu_internal.h"
 
+static int is_empty_or_comment_line(const char *line)
+{
+	return line[0] == '\0' || line[0] == '#';
+}
+
 static int parse_one_line(struct amdgpu_device *dev, const char *line)
 {
 	char *buf, *saveptr;
@@ -51,7 +56,7 @@ static int parse_one_line(struct amdgpu_device *dev, const char *line)
 	int r = -EINVAL;
 
 	/* ignore empty line and commented line */
-	if (strlen(line) == 0 || line[0] == '#')
+	if (is_empty_or_comment_line(line))
 		return -EAGAIN;
 
 	buf = strdup(line);
@@ -107,6 +112,128 @@ out:
 	free(buf);
 
 	return r;
+}
+
+/* Parse a whole 16-bit hex token; rejects empty, signed, overflowing or trailing-garbage input. */
+static int parse_hex(const char *tok, uint32_t *val)
+{
+	char *endptr;
+	unsigned long v;
+
+	while (isspace((unsigned char)*tok))
+		tok++;
+	if (!isxdigit((unsigned char)*tok))
+		return -EINVAL;
+
+	errno = 0;
+	v = strtoul(tok, &endptr, 16);
+	if (errno || *endptr || v > 0xFFFF)
+		return -EINVAL;
+
+	*val = v;
+
+	return 0;
+}
+
+/*
+ * Child line: SSVID, SSDID, name (leading indentation already stripped).
+ * Returns 0 and a malloc'd name on match, -EAGAIN on mismatch.
+ */
+static int parse_child_line(const char *line, uint32_t svid, uint32_t sdid,
+			    char **name)
+{
+	char *buf, *saveptr;
+	char *s_svid, *s_sdid, *s_name;
+	uint32_t line_svid, line_sdid;
+	int r = -EINVAL;
+
+	buf = strdup(line);
+	if (!buf)
+		return -ENOMEM;
+
+	s_svid = strtok_r(buf, ",", &saveptr);
+	if (!s_svid || parse_hex(s_svid, &line_svid))
+		goto out;
+
+	s_sdid = strtok_r(NULL, ",", &saveptr);
+	if (!s_sdid || parse_hex(s_sdid, &line_sdid))
+		goto out;
+
+	s_name = strtok_r(NULL, ",", &saveptr);
+	if (!s_name)
+		goto out;
+
+	/* trim leading whitespaces or tabs */
+	while (isblank(*s_name))
+		s_name++;
+	if (strlen(s_name) == 0)
+		goto out;
+
+	if (line_svid != svid || line_sdid != sdid) {
+		r = -EAGAIN;
+		goto out;
+	}
+
+	*name = strdup(s_name);
+	r = *name ? 0 : -ENOMEM;
+
+out:
+	free(buf);
+
+	return r;
+}
+
+/*
+ * Read the indented children of the 2ID entry just matched; the first
+ * child matching the board's SSVID/SSDID replaces the 2ID name.
+ * line_num is the number of the last line read.
+ */
+static void parse_child_lines(struct amdgpu_device *dev, FILE *fp,
+			      char **line, size_t *len, int line_num,
+			      const char *path)
+{
+	ssize_t n;
+
+	if (!dev->has_subsys_id)
+		return;
+
+	while ((n = getline(line, len, fp)) != -1) {
+		char *name = NULL;
+		char *p = *line;
+		int r;
+
+		line_num++;
+
+		/* trim trailing newline */
+		if (p[n - 1] == '\n')
+			p[n - 1] = '\0';
+
+		/* blank and comment lines may sit between children */
+		if (p[0] == '\0' || p[0] == '#')
+			continue;
+
+		/* next 2ID entry */
+		if (!isblank((unsigned char)p[0]))
+			break;
+
+		while (isblank((unsigned char)*p))
+			p++;
+		if (*p == '\0' || *p == '#')
+			continue;
+
+		r = parse_child_line(p, dev->subsystem_vendor_id,
+				     dev->subsystem_device_id, &name);
+		if (r == 0) {
+			free(dev->marketing_name);
+			dev->marketing_name = name;
+			break;
+		}
+		if (r == -EINVAL)
+			fprintf(stderr, "Invalid format, skipped: %s: line %d: %s\n",
+				path, line_num, *line);
+		else if (r != -EAGAIN)
+			break;
+	}
 }
 
 static void amdgpu_parse_proc_cpuinfo(struct amdgpu_device *dev)
@@ -281,7 +408,7 @@ void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t n;
-	int line_num = 1;
+	int line_num = 0;
 	int r = 0;
 
 	char *amdgpu_asic_id_table_path = NULL;
@@ -303,33 +430,40 @@ void amdgpu_parse_asic_ids(struct amdgpu_device *dev)
 
 	/* 1st valid line is file version */
 	while ((n = getline(&line, &len, fp)) != -1) {
+		line_num++;
+
 		/* trim trailing newline */
 		if (line[n - 1] == '\n')
 			line[n - 1] = '\0';
 
 		/* ignore empty line and commented line */
-		if (strlen(line) == 0 || line[0] == '#') {
-			line_num++;
+		if (is_empty_or_comment_line(line))
 			continue;
-		}
 
 		drmMsg("%s version: %s\n", amdgpu_asic_id_table_path, line);
 		break;
 	}
 
 	while ((n = getline(&line, &len, fp)) != -1) {
+		line_num++;
+
 		/* trim trailing newline */
 		if (line[n - 1] == '\n')
 			line[n - 1] = '\0';
 
+		/* indented line: child of a non-matching 2ID entry */
+		if (isblank((unsigned char)line[0]))
+			continue;
+
 		r = parse_one_line(dev, line);
 		if (r != -EAGAIN)
 			break;
-
-		line_num++;
 	}
 
-	if (r == -EINVAL) {
+	if (r == 0 && dev->marketing_name) {
+		parse_child_lines(dev, fp, &line, &len, line_num,
+				  amdgpu_asic_id_table_path);
+	} else if (r == -EINVAL) {
 		fprintf(stderr, "Invalid format: %s: line %d: %s\n",
 			amdgpu_asic_id_table_path, line_num, line);
 	} else if (r && r != -EAGAIN) {
