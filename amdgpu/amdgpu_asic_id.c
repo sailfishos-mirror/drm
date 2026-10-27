@@ -396,6 +396,7 @@ static char *find_asic_id_table(void)
 			found_path = full_path;
 			break;
 		}
+		free(full_path);
 	}
 	split_env_var_free(paths);
 	return found_path;
